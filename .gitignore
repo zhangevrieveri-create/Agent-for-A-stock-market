@@ -1,6 +1,6 @@
 # 数据与产出（体积大且涉及数据授权，不上传）
-data/
-outputs/
+/data/
+/outputs/
 *.pt
 *.npz
 *.parquet
