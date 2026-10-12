@@ -1,0 +1,129 @@
+# =====================================================================
+#  融合新闻舆情与量价数据的强化学习智能投资系统 —— 默认配置
+#  标注说明：[表4] 论文表4给出的取值；[算法1] 论文算法1给出的取值；
+#            [表3] 由论文表3参数量反推的结构；[未给出] 论文未给出，此处为本项目取值
+# =====================================================================
+
+# ----------------------------- 路径 -----------------------------
+paths:
+  raw: data/raw              # 原始数据：米筐行情、新浪新闻
+  interim: data/interim      # 中间数据：清洗后新闻、日度情绪、表1
+  processed: data/processed  # 训练数据集 (npz)
+  output: outputs            # 模型、日志、表3/表4、回测结果
+
+# ----------------------------- 米筐 RQData -----------------------------
+rqdata:
+  username: null             # 建议使用环境变量 RQDATA_USERNAME / RQDATA_PASSWORD
+  password: null
+  start_date: '2014-01-06'   # 论文样本区间
+  end_date: '2025-10-29'
+  chunk_size: 100            # 每次请求的股票数
+  benchmark: '000300.XSHG'   # 市场基准（沪深300），用于市场波动率与回测对比
+  universe:                  # 全市场股票池（论文 3699 只）
+    exclude_bj: true         # 排除北交所
+    exclude_st: false
+    listed_before: '2024-10-29'
+    max_stocks: null
+  # 【需填写】米筐个股情绪指数（新闻/财务/行业政策舆情聚合因子，取值[-1,1]）的因子名，
+  # 以你账户开通的数据文档为准；null 时该特征置 0
+  sentiment_factor: null
+
+# ----------------------------- 新浪财经新闻 -----------------------------
+news:
+  sources: [search, stock_list]  # search: 按个股名称检索；stock_list: 个股新闻列表页
+  require_name_in_title: true    # 只保留标题中出现股票名称的新闻
+  page_size: 20
+  max_pages: 500
+  sleep: [0.5, 1.5]              # 请求间隔（秒）
+  workers: 4
+  timeout: 15
+  close_time: '15:00'            # 收盘后发布的新闻归入下一交易日
+  # 【历史新闻导入位置】已有的历史新闻文件夹（csv/parquet），格式见 rlinvest/data/news_clean.py
+  # 中的 load_history_news()。暂不导入时保持 null
+  history_dir: null
+
+# ----------------------------- 新闻情绪 -----------------------------
+sentiment:
+  method: lexicon            # lexicon: 金融情感词典；transformer: 预训练中文情感模型
+  model_name: null           # method=transformer 时填 HuggingFace 模型名
+  batch_size: 64
+  extra_pos_dict: null       # 扩充正面词典 txt（每行一个词）
+  extra_neg_dict: null
+  decay: 0.8                 # 无新闻交易日的情绪衰减系数
+
+# ----------------------------- 数据集 -----------------------------
+dataset:
+  name: u10
+  universe:
+    method: top_news         # top_news: 新闻最多的 n 只；codes: 使用下方列表
+    n: 10                    # [表3] 投资域容量 U=10（输出维度 m+1=11）
+    codes: []
+    min_coverage: 0.95       # 样本期内行情覆盖率下限
+  start_date: '2014-01-06'
+  val_date: '2022-01-01'     # [未给出] 训练集：start ~ val_date
+  test_date: '2023-01-01'    # [未给出] 验证集：val_date ~ test_date；测试集：test_date ~ end
+  end_date: '2025-10-29'
+  # [表2] 技术指标 26 个 + 舆情指标 3 个 = 特征通道 F=29（与表3 Bi-LSTM 参数量一致）
+  technical: [open, close, high, low, volume, turnover,
+              ma5, ma10, ma30, ma120, ema30, boll_up, boll_dn,
+              atr, adx, kdj_k, kdj_d, kdj_j, rsi6, rsi12, rsi24, cci,
+              macd_dif, macd_dea, macd_hist, mtm]
+  sentiment: [sina_senti, news_cnt, rq_senti]
+
+# ----------------------------- 强化学习 -----------------------------
+rl:
+  # 网络结构 [算法1][表3]
+  T: 20                      # [未给出] 历史窗口长度
+  lstm_hidden: 128           # Bi-LSTM(1层, 隐藏层128)，双向输出 256
+  lstm_layers: 1
+  n_heads: 8                 # Transformer 编码器 8 头注意力
+  n_layers: 2                # Transformer 编码器 2 层
+  ff_dim: 128                # [表3] 前馈网络参数量 65,920 对应前馈维度 128
+  mlp_hidden: 128            # [表3] 决策层隐藏层 512->128
+  dropout: 0.0
+  asset_encoding: true       # 无参数的标的位置编码，使全局池化后仍可区分标的
+
+  # PPO-Clip [表4][算法1]
+  lr: 3.0e-4                 # [表4] 初始学习率 η0
+  gamma: 0.99                # [表4] 折扣因子 γ
+  lam: 0.95                  # [表4] GAE 参数 λ
+  eps0: 0.2                  # [表4] 初始裁剪参数 ε
+  value_coef: 0.5            # [算法1] L_total = L_policy + 0.5 L_value
+  entropy_coef: 0.0          # [算法1] 论文总损失不含熵项
+  buffer_size: 1000          # [算法1] 采样缓存区容量 C
+  B: 256                     # [未给出] 轨迹批量大小
+  E: 10                      # [未给出] 每批数据更新轮数
+  update_interval: 100       # [未给出] 每隔多少交易步检查 |D|>=B 并更新
+  K: 200000                  # [未给出] 训练总步数
+  max_grad_norm: 0.5
+  adv_norm: true
+
+  # 课程噪声 [表4]：σ_noise = σ0·exp(-β·n)，n 为已完成的更新轮次
+  sigma0: 0.4
+  beta: 0.004
+
+  # 自适应参数 [算法1]：每 100 步调整一次
+  adapt_interval: 100
+  alpha: 0.1                 # [未给出] 自适应学习率衰减系数 α
+  vol_win: 20                # [未给出] 当前市场波动率 σ_t 的滚动窗口
+  W: 60                      # [未给出] 历史平均波动率窗口 W
+  eps_bounds: [0.1, 0.4]
+  lr_bounds: [3.0e-5, 1.0e-3]
+
+  # 奖励 [表4]
+  w1: 0.4                    # 短期收益权重
+  w2: 0.5                    # 夏普比率（差分夏普比率）权重
+  w3: 0.1                    # 资本（回撤）惩罚权重
+  ret_scale: 100.0           # 收益以百分比计
+  dd_scale: 10.0
+  dsr_eta: 0.01              # 差分夏普比率矩估计步长
+  dsr_clip: 3.0
+
+  # 环境 [表4]
+  tau: 0.0018                # 综合交易手续费率 τ
+  rf: 0.01                   # 年化无风险利率 r_f
+  ep_len: 252                # 每回合交易日数
+  trade_limits: true         # 停牌不可交易、涨停不可买入、跌停不可卖出
+
+  eval_interval: 20          # 每隔多少轮更新在验证集上评估并保存最优模型
+  seed: 42

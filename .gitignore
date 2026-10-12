@@ -1,0 +1,28 @@
+# 数据与产出（体积大且涉及数据授权，不上传）
+data/
+outputs/
+*.pt
+*.npz
+*.parquet
+*.png
+
+# 本地账号与实验配置
+configs/local*.yaml
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+
+# 旧版单文件脚本
+ppo_invest.py
