@@ -4,6 +4,7 @@
 动作 A_t ∈ [0,1]^{m+1}：前 U 维为股票权重，最后一维为现金，Σ=1
 在 t 日收盘按 A_t 调仓，获得 t→t+1 的收益；交易成本 τ·Σ|ΔA|
 奖励 r_t = w1·短期收益 + w2·差分夏普比率 − w3·资本（回撤）惩罚
+短期收益 = 组合对数收益 − 基准（无风险收益，或等权组合收益作为控制变量，见 ret_baseline）
 """
 import math
 import random
@@ -76,7 +77,13 @@ class PortfolioEnv:
 
         self.V, self.Vmax = Vn, max(self.Vmax, Vn)
         dd = 1 - self.V / self.Vmax
-        reward = (c['w1'] * c['ret_scale'] * (R - c['rf'] / 252)
+        # 短期收益的基准：equal_weight 时减去投资域等权组合的当日对数收益。等权收益是外生的（不受动作影响），
+        # 作为控制变量只使目标函数相差一个常数，最优策略与梯度期望不变，但去掉了奖励中占主导的市场共同波动
+        if c.get('ret_baseline') == 'equal_weight':
+            base = math.log(1 + float(r.mean()))
+        else:
+            base = c['rf'] / 252
+        reward = (c['w1'] * c['ret_scale'] * (R - base)
                   + c['w2'] * float(np.clip(dsr, -c['dsr_clip'], c['dsr_clip']))
                   - c['w3'] * c['dd_scale'] * dd)
         self.w = w * growth / gross            # 价格变动后的实际持仓

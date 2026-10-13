@@ -59,6 +59,7 @@ dataset:
     n: 10                    # [表3] 投资域容量 U=10（输出维度 m+1=11）
     codes: []
     min_coverage: 0.95       # 样本期内行情覆盖率下限
+    rank_until: val_date     # 只用训练集区间的新闻数排序选股，避免用到验证/测试期信息
   start_date: '2014-01-06'
   val_date: '2022-01-01'     # [未给出] 训练集：start ~ val_date
   test_date: '2023-01-01'    # [未给出] 验证集：val_date ~ test_date；测试集：test_date ~ end
@@ -69,6 +70,7 @@ dataset:
               atr, adx, kdj_k, kdj_d, kdj_j, rsi6, rsi12, rsi24, cci,
               macd_dif, macd_dea, macd_hist, mtm]
   sentiment: [sina_senti, news_cnt, rq_senti]
+  rq_senti_lag: 1            # 米筐情绪指数滞后 1 个交易日使用（因子通常在收盘后计算发布）
 
 # ----------------------------- 强化学习 -----------------------------
 rl:
@@ -81,7 +83,10 @@ rl:
   ff_dim: 128                # [表3] 前馈网络参数量 65,920 对应前馈维度 128
   mlp_hidden: 128            # [表3] 决策层隐藏层 512->128
   dropout: 0.0
-  asset_encoding: true       # 无参数的标的位置编码，使全局池化后仍可区分标的
+  asset_encoding: true       # 无参数的标的位置编码
+  dual_attention: both       # 消融：both / feature（仅特征注意力）/ asset（仅标的注意力）/ none
+  head: asset                # asset: 逐标的策略头（W_a2 第 u 行作用于第 u 只标的，参数量同表3）；global: 全局池化后输出；
+                             # shared: 所有股票共用一行权重的共享评估器（EIIE 式，无标的身份，参数量与表3不同）
 
   # PPO-Clip [表4][算法1]
   lr: 3.0e-4                 # [表4] 初始学习率 η0
@@ -97,13 +102,23 @@ rl:
   K: 200000                  # [未给出] 训练总步数
   max_grad_norm: 0.5
   adv_norm: true
+  # 训练稳定性（见 rlinvest/rl/ppo.py 文件头说明）
+  reward_norm: true          # 奖励按折扣回报的滑动标准差缩放
+  clip_center: current       # current: 以更新前策略为裁剪中心 + 截断重要性权重；behavior: 以采样时策略为中心
+  is_clip: 2.0               # 重要性权重 π_k/π_b 的截断上限
+  target_kl: 0.02            # 每轮更新的 KL 早停阈值（0 表示不早停）
+  sigma_init: 0.1            # 策略网络初始标准差
+  logit_l2: 0.01             # μ 的 logit L2 约束，防止 sigmoid 饱和后策略冻结
+  weight_decay: 0.0          # AdamW 权重衰减
+  sigma_max: 0.3             # 策略标准差的平滑上限（动作截断到[0,1]会使 σ 无约束地增大，μ 的梯度随 1/σ² 消失）
 
   # 课程噪声 [表4]：σ_noise = σ0·exp(-β·n)，n 为已完成的更新轮次
   sigma0: 0.4
   beta: 0.004
 
-  # 自适应参数 [算法1]：每 100 步调整一次
+  # 自适应参数 [算法1]：学习率每 100 步调整一次；裁剪参数按样本所处交易日的市场波动率计算
   adapt_interval: 100
+  lr_ema: 0.9                # 策略损失的指数滑动平均系数（用于 ΔL_policy / L_policy）
   alpha: 0.1                 # [未给出] 自适应学习率衰减系数 α
   vol_win: 20                # [未给出] 当前市场波动率 σ_t 的滚动窗口
   W: 60                      # [未给出] 历史平均波动率窗口 W
@@ -115,6 +130,7 @@ rl:
   w2: 0.5                    # 夏普比率（差分夏普比率）权重
   w3: 0.1                    # 资本（回撤）惩罚权重
   ret_scale: 100.0           # 收益以百分比计
+  ret_baseline: equal_weight # 短期收益减去等权组合收益（控制变量，降低奖励方差，不改变最优策略）；rf: 减无风险收益
   dd_scale: 10.0
   dsr_eta: 0.01              # 差分夏普比率矩估计步长
   dsr_clip: 3.0
@@ -126,4 +142,5 @@ rl:
   trade_limits: true         # 停牌不可交易、涨停不可买入、跌停不可卖出
 
   eval_interval: 20          # 每隔多少轮更新在验证集上评估并保存最优模型
+  patience: 0                # 验证集夏普连续多少次未提升则提前停止（0 表示不早停）
   seed: 42

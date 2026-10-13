@@ -18,11 +18,13 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--config', default=None)
     ap.add_argument('--ckpt', default='best.pt', help='best.pt 或 last.pt')
+    ap.add_argument('--tag', default=None, help='实验标签，结果保存到 outputs/<数据集名>_<tag>/')
     args = ap.parse_args()
     cfg = load_config(args.config)
     P, name = cfg['paths'], cfg['dataset']['name']
-    out = P['output'] / name
-    log = get_logger(log_file=P['output'] / 'logs' / f'06_backtest_{name}.log')
+    run = f'{name}_{args.tag}' if args.tag else name
+    out = P['output'] / run
+    log = get_logger(log_file=P['output'] / 'logs' / f'06_backtest_{run}.log')
     device = get_device()
 
     data = load_dataset(P['processed'] / f'{name}.npz')

@@ -30,7 +30,11 @@ def select_universe(cfg, price, news_daily, trading_dates):
     p = price[(price['date'] >= d['start_date']) & (price['date'] <= d['end_date'])]
     cover = p[p['volume'] > 0].groupby('order_book_id')['date'].nunique() / len(td)
     ok = cover[cover >= u['min_coverage']].index
-    cnt = news_daily[news_daily['order_book_id'].isin(ok)].groupby('order_book_id')['news_cnt'].sum()
+    nd = news_daily[news_daily['order_book_id'].isin(ok)]
+    rank_until = d.get(u.get('rank_until'), u.get('rank_until'))   # 可填日期或 val_date / test_date
+    if rank_until:
+        nd = nd[nd['date'] < pd.Timestamp(rank_until)]
+    cnt = nd.groupby('order_book_id')['news_cnt'].sum()
     if len(cnt) < u['n']:
         raise ValueError(f'满足覆盖率要求且有新闻的股票只有 {len(cnt)} 只，少于 U={u["n"]}')
     return list(cnt.sort_values(ascending=False).head(u['n']).index)
@@ -61,7 +65,8 @@ def _stock_panel(code, price, news_daily, rq_senti, dates, cfg):
     f['news_cnt'] = np.log1p(nd['news_cnt'].fillna(0))
     if rq_senti is not None:
         rs = rq_senti[rq_senti['order_book_id'] == code].set_index('date')['rq_senti']
-        f['rq_senti'] = rs.reindex(dates).ffill().fillna(0).clip(-1, 1)
+        lag = cfg['dataset'].get('rq_senti_lag', 0)
+        f['rq_senti'] = rs.reindex(dates).ffill().shift(lag).fillna(0).clip(-1, 1)
     else:
         f['rq_senti'] = 0.0
 

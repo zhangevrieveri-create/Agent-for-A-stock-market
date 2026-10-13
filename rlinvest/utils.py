@@ -58,6 +58,11 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-def get_device():
+def get_device(tf32=True):
+    """优先使用 GPU；Ampere 及以上显卡开启 TF32 矩阵乘法加速。"""
     import torch
-    return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        torch.backends.cuda.matmul.allow_tf32 = tf32
+        torch.backends.cudnn.allow_tf32 = tf32
+        return torch.device('cuda')
+    return torch.device('cpu')

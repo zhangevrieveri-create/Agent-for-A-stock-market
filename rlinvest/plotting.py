@@ -64,7 +64,8 @@ def plot_weights(weights: pd.DataFrame, path, title, top=7):
 def plot_training(logs: pd.DataFrame, path):
     """训练曲线：每个量单独一个子图（不使用双纵轴）。"""
     panels = [('reward', '缓存区平均奖励'), ('policy_loss', '策略损失 L_policy'), ('value_loss', '价值损失 L_value'),
-              ('val_sharpe', '验证集夏普比率'), ('eps', '自适应裁剪参数 ε_t'), ('lr', '自适应学习率 η_t')]
+              ('val_sharpe', '验证集夏普比率'), ('eps', '自适应裁剪参数 ε（批均值）'), ('lr', '自适应学习率 η_t'),
+              ('approx_kl', 'KL(π_k‖π_θ)'), ('clip_frac', '裁剪比例'), ('explained_var', '价值网络解释方差')]
     panels = [(k, t) for k, t in panels if k in logs and logs[k].notna().any()]
     n = len(panels)
     cols = 3

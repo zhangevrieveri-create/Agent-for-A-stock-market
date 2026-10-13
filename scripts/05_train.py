@@ -18,12 +18,17 @@ TABLE4 = [('训练参数', '初始学习率', 'η', 'lr'), ('训练参数', '折
 if __name__ == '__main__':
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--config', default=None)
+    ap.add_argument('--seed', type=int, default=None, help='覆盖随机种子（多种子重复实验）')
+    ap.add_argument('--tag', default=None, help='实验标签，结果保存到 outputs/<数据集名>_<tag>/')
     args = ap.parse_args()
     cfg = load_config(args.config)
     P, name, rl = cfg['paths'], cfg['dataset']['name'], cfg['rl']
-    out = P['output'] / name
+    if args.seed is not None:
+        rl['seed'] = args.seed
+    run = f'{name}_{args.tag}' if args.tag else name
+    out = P['output'] / run
     out.mkdir(parents=True, exist_ok=True)
-    log = get_logger(log_file=P['output'] / 'logs' / f'05_train_{name}.log')
+    log = get_logger(log_file=P['output'] / 'logs' / f'05_train_{run}.log')
     set_seed(rl['seed'])
     device = get_device()
     log.info(f'设备 {device}')
