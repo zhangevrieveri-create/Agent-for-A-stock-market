@@ -1,0 +1,10 @@
+# 合成数据实验的基础配置（当前默认的训练设置），其余变体只覆盖差异字段
+base: ../../../configs/default.yaml
+paths:
+  raw: data_synthetic/raw
+  interim: data_synthetic/interim
+  processed: data_synthetic/processed
+  output: outputs_synthetic
+rl:
+  K: 60000
+  eval_interval: 20

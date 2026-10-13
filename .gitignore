@@ -1,10 +1,13 @@
 # 数据与产出（体积大且涉及数据授权，不上传）
 /data/
 /outputs/
+/data_synthetic/
+/outputs_synthetic/
 *.pt
 *.npz
 *.parquet
 *.png
+!experiments/sanity_check/results/*.png
 
 # 本地账号与实验配置
 configs/local*.yaml
