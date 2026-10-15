@@ -9,6 +9,8 @@
 *.png
 !experiments/sanity_check/results/*.png
 !examples/rq4/data/processed/*.npz
+!examples/rq4/data/raw/*.parquet
+!examples/rq4/data/raw/**/*.parquet
 !examples/rq4/results/*.png
 /examples/rq4/outputs/
 /examples/rq4/data/interim/

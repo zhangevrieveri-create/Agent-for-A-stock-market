@@ -1,6 +1,8 @@
-# 直接使用仓库内示例数据（处理后的数据集）训练与回测，无需米筐账号
-#   python scripts/05_train.py    --config examples/rq4/config.yaml --epochs 15
-#   python scripts/06_backtest.py --config examples/rq4/config.yaml
+# 使用仓库内的示例数据（截至 2024-12-31），无需米筐账号
+#   训练与回测：python scripts/05_train.py --config examples/rq4/config.yaml --epochs 15
+#               python scripts/06_backtest.py --config examples/rq4/config.yaml
+#   从原始数据重建数据集：python scripts/03_build_sentiment.py --config examples/rq4/config.yaml
+#                         python scripts/04_build_dataset.py   --config examples/rq4/config.yaml
 base: ../../configs/rq_sample.yaml
 paths:
   raw: examples/rq4/data/raw
