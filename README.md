@@ -4,6 +4,12 @@
 **Bi-LSTM → Transformer 编码器 → 双重视角注意力** 提取特征，由 **PPO-Clip**
 （课程噪声、自适应裁剪阈值、自适应学习率）学习 A 股投资组合的调仓权重。
 
+> **关于数据**：论文使用的全量数据是 3699 只股票、2014–2025 年的量价与舆情，来自米筐 RQData 的付费数据服务，
+> 费用约 14 万元/年，且受数据授权限制，无法随仓库公开。仓库在 [`examples/rq4/`](examples/rq4/README.md)
+> 提供部分股票的示例：贵州茅台、五粮液、招商银行、中国平安，2017-01-03 ~ 2024-12-31。
+> 由于模型训练运行较慢，示例只使用少量股票和较少的训练轮数（15 个 epoch），结果用于演示完整流程，
+> 不代表论文的实证结论。
+
 ## 项目结构
 
 ```
@@ -26,6 +32,7 @@ rl_invest/
 │   ├── plotting.py             净值、持仓、训练曲线
 │   └── utils.py
 ├── scripts/                    按顺序运行 01 → 06
+├── examples/rq4/               部分股票的示例数据（处理后的数据集）与训练、回测结果
 ├── experiments/sanity_check/   合成数据上的训练可学习性检验：脚本、配置与结果
 ├── pyproject.toml
 └── requirements.txt
@@ -61,6 +68,15 @@ export RQDATA_USERNAME=xxx RQDATA_PASSWORD=xxx      # Windows PowerShell: $env:R
 base: default.yaml
 dataset: {name: u10_no_senti, sentiment: []}
 ```
+
+**示例数据**：没有米筐账号也可以直接用仓库里的示例数据训练和回测，见 [`examples/rq4/README.md`](examples/rq4/README.md)：
+
+```bash
+python scripts/05_train.py    --config examples/rq4/config.yaml --epochs 15
+python scripts/06_backtest.py --config examples/rq4/config.yaml
+```
+
+`--epochs N` 表示把训练集的交易日遍历 N 遍，总步数 K = N × 训练集天数。
 
 ## 数据
 

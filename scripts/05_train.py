@@ -19,6 +19,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--config', default=None)
     ap.add_argument('--seed', type=int, default=None, help='覆盖随机种子（多种子重复实验）')
+    ap.add_argument('--epochs', type=float, default=None,
+                    help='按训练轮数设置总步数：1 轮 = 遍历一次训练集交易日，K = 轮数 × 训练集天数')
     ap.add_argument('--tag', default=None, help='实验标签，结果保存到 outputs/<数据集名>_<tag>/')
     args = ap.parse_args()
     cfg = load_config(args.config)
@@ -34,6 +36,10 @@ if __name__ == '__main__':
     log.info(f'设备 {device}')
 
     data = load_dataset(P['processed'] / f'{name}.npz')
+    if args.epochs:
+        train_days = data['val_idx'] - rl['T'] + 1
+        rl['K'] = int(args.epochs * train_days)
+        log.info(f'训练 {args.epochs:g} 轮 × 训练集 {train_days} 个交易日 = {rl["K"]} 步')
     trainer = PPOTrainer(data, rl, device, out)
     trainer.table3.to_csv(out / 'table3_params.csv', index=False, encoding='utf-8-sig')
     table4 = pd.DataFrame([(a, b, s, rl[k]) for a, b, s, k in TABLE4], columns=['类别', '参数名称', '符号', '值'])

@@ -26,10 +26,19 @@ def plot_nav(navs: dict, path, title):
     fig, ax = plt.subplots(figsize=(10, 4.2))
     for i, (name, nav) in enumerate(navs.items()):
         ax.plot(nav.index, nav.values, color=SERIES[i], label=name, zorder=3 if i == 0 else 2)
-        if len(navs) <= 4:
-            ax.annotate(f'{name} {nav.iloc[-1]:.2f}', (nav.index[-1], nav.iloc[-1]), xytext=(6, 0),
-                        textcoords='offset points', va='center', fontsize=8.5, color=INK2)
     ax.axhline(1.0, color=AXIS, linewidth=0.8, zorder=1)
+    if len(navs) <= 4:                       # 线尾标注：按终值排序并保持最小间距，避免文字重叠
+        lo, hi = ax.get_ylim()
+        gap = (hi - lo) * 0.055
+        ends = sorted(((nav.iloc[-1], name) for name, nav in navs.items()))
+        ys = []
+        for y, _ in ends:
+            ys.append(max(y, ys[-1] + gap) if ys else y)
+        shift = max(0.0, ys[-1] - (hi - gap / 2))
+        for (y, name), y_txt in zip(ends, ys):
+            ax.annotate(f'{name} {y:.2f}', (navs[name].index[-1], y), xytext=(1.01, y_txt - shift),
+                        textcoords=('axes fraction', 'data'), va='center', fontsize=8.5, color=INK2,
+                        annotation_clip=False)
     ax.set_title(title)
     ax.set_ylabel('净值')
     ax.legend(loc='upper left', ncol=len(navs), fontsize=9)

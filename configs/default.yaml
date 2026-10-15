@@ -24,6 +24,9 @@ rqdata:
     exclude_st: false
     listed_before: '2024-10-29'
     max_stocks: null
+  codes: null                # 只取这些股票（如 ['600519.XSHG']），null 时按上面的条件取全市场
+  news: false                # true：通过 rqdatac.news.get_stock_news 获取新闻标题（需安装 rqdatac_news，2017 年起）
+  sentiment_source: factor   # factor：用 get_factor 读取情绪因子；news：由米筐新闻的公司情绪权重聚合为日度情绪指数
   # 【需填写】米筐个股情绪指数（新闻/财务/行业政策舆情聚合因子，取值[-1,1]）的因子名，
   # 以你账户开通的数据文档为准；null 时该特征置 0
   sentiment_factor: null

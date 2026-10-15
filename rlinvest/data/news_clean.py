@@ -15,12 +15,17 @@ COLUMNS = ['order_book_id', 'datetime', 'title', 'source']
 
 
 def load_crawled_news(news_dir: Path):
-    """读取 02_crawl_news.py 爬取的 raw/news/{order_book_id}.csv。"""
+    """读取 02_crawl_news.py 爬取的 raw/news/{order_book_id}.csv，以及米筐新闻 raw/news_rq/{order_book_id}.parquet。"""
     parts = []
     for f in sorted(news_dir.glob('*.csv')):
         df = pd.read_csv(f, parse_dates=['datetime'])
         if len(df):
             df['order_book_id'] = f.stem
+            parts.append(df)
+    for f in sorted((news_dir.parent / 'news_rq').glob('*.parquet')):
+        df = pd.read_parquet(f, columns=['order_book_id', 'datetime', 'title', 'source'])
+        if len(df):
+            df['source'] = 'rqdata:' + df['source'].astype(str)
             parts.append(df)
     if not parts:
         return pd.DataFrame(columns=COLUMNS)
